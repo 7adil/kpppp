@@ -166,19 +166,10 @@ class _CustomerOrderPageState extends State<CustomerOrderPage> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    // pw.Text(customerName, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                    // pw.SizedBox(height: 5),
-                  ],
-                ),
-                pw.SizedBox(width: 300),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
-                  children: [
                     pw.Text(
                       'Order Date: ${currentDate.year}-${currentDate.month}-${currentDate.day}',
                       style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
                     ),
-                    // pw.SizedBox(height: 5),
                   ],
                 ),
               ],
@@ -229,7 +220,7 @@ class _CustomerOrderPageState extends State<CustomerOrderPage> {
     }
 
     // Define a method to build a page with a watermark
-    pw.Widget _buildPage() {
+    pw.Widget _buildPage(List<Map<String, TextEditingController>> rows) {
       return pw.Stack(
         children: [
           pw.Positioned(
@@ -322,29 +313,38 @@ class _CustomerOrderPageState extends State<CustomerOrderPage> {
                   ),
                 ),
               ),
-
-
             ],
           ),
         ],
       );
     }
 
-    // Add pages
+    // Split the rows into chunks that fit on a single page
+    List<List<Map<String, TextEditingController>>> chunkRows(List<Map<String, TextEditingController>> rows, int chunkSize) {
+      List<List<Map<String, TextEditingController>>> chunks = [];
+      for (var i = 0; i < rows.length; i += chunkSize) {
+        chunks.add(rows.sublist(i, i + chunkSize > rows.length ? rows.length : i + chunkSize));
+      }
+      return chunks;
+    }
+
+    // Add pages with rows split into manageable chunks
+    const int rowsPerPage = 10; // Adjust this value to fit rows on a single page
+    List<List<Map<String, TextEditingController>>> chunks = chunkRows(rows, rowsPerPage);
+
     pdf.addPage(
       pw.MultiPage(
-        header: (pw.Context context) => _buildHeader(),
-        footer: (pw.Context context) => _buildFooter(),
-        build: (pw.Context context) => [
-          _buildPage(),
+        build: (context) => [
+          _buildHeader(),
+          for (var chunk in chunks) _buildPage(chunk),
+          _buildFooter(),
         ],
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
+
 
   void _handleSubmit() {
     // Handle the form submission logic here
